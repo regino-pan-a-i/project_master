@@ -44,6 +44,103 @@ interface EditableSectionProps {
   onSave: (value: string) => Promise<unknown>
 }
 
+type TimeUnit = 'hours' | 'days' | 'weeks'
+const UNIT_MULTIPLIER: Record<TimeUnit, number> = { hours: 1, days: 24, weeks: 168 }
+
+function hoursToDisplay(h: number): { value: string; unit: TimeUnit } {
+  if (h % 168 === 0) return { value: String(h / 168), unit: 'weeks' }
+  if (h % 24 === 0) return { value: String(h / 24), unit: 'days' }
+  return { value: String(h), unit: 'hours' }
+}
+
+function formatHoursReadable(h: number): string {
+  if (h < 24) return h === 1 ? '1 hr' : `${h} hrs`
+  const days = h / 24
+  if (days < 14) return days === 1 ? '1 day' : `${days} days`
+  const weeks = days / 7
+  return weeks === 1 ? '1 week' : `${weeks} weeks`
+}
+
+interface EditableEstimateProps {
+  value: number | null
+  onSave: (hours: number | null) => Promise<unknown>
+}
+
+function EditableEstimate({ value, onSave }: EditableEstimateProps) {
+  const initial = value != null ? hoursToDisplay(value) : { value: '', unit: 'days' as TimeUnit }
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(initial.value)
+  const [unit, setUnit] = useState<TimeUnit>(initial.unit)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const parsed = parseFloat(draft)
+      await onSave(draft.trim() && !isNaN(parsed) ? parsed * UNIT_MULTIPLIER[unit] : null)
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleCancel() {
+    const reset = value != null ? hoursToDisplay(value) : { value: '', unit: 'days' as TimeUnit }
+    setDraft(reset.value)
+    setUnit(reset.unit)
+    setEditing(false)
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Estimated Time</h3>
+        {!editing && (
+          <button onClick={() => setEditing(true)} className="text-xs text-blue-600 hover:text-blue-800">
+            {value != null ? 'Edit' : 'Add'}
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min="0.5"
+              step="0.5"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="e.g. 2"
+              className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={unit}
+              onChange={(e) => setUnit(e.target.value as TimeUnit)}
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="hours">hours</option>
+              <option value="days">days</option>
+              <option value="weeks">weeks</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button onClick={handleCancel} className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg">
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : value != null ? (
+        <p className="text-sm text-gray-700">{formatHoursReadable(value)}</p>
+      ) : (
+        <p className="text-sm text-gray-400 italic">Not set</p>
+      )}
+    </div>
+  )
+}
+
 interface EditableUrlSectionProps {
   value: string | null
   onSave: (value: string | null) => Promise<unknown>
@@ -315,6 +412,10 @@ export default function ProjectDetailPage() {
           label="Expected Outcomes"
           value={project.expected_outcomes}
           onSave={(val) => updateProject(id, { expected_outcomes: val })}
+        />
+        <EditableEstimate
+          value={project.estimated_hours}
+          onSave={(val) => updateProject(id, { estimated_hours: val })}
         />
         <EditableUrlSection
           value={project.url}

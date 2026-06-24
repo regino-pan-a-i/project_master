@@ -7,6 +7,9 @@ import type { Project, Task } from '@/lib/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const CATEGORY_MAX_HOURS = { quick: 3, short: 72, medium: 336 }
+const CATEGORY_MAX_LABEL = { quick: '3 hrs', short: '3 days', medium: '2 wks' }
+
 function avgMs(tasks: Task[]): number | null {
   const doneTasks = tasks.filter(
     (t) => t.status === 'done' && t.started_at !== null && t.completed_at !== null
@@ -34,6 +37,44 @@ function formatDuration(ms: number): string {
   if (hours < 24) return `${Math.round(hours)} hrs`
   const days = hours / 24
   return `${Math.round(days)} days`
+}
+
+function formatHours(h: number): string {
+  if (h < 24) return h === 1 ? '1 hr' : `${+h.toFixed(1)} hrs`
+  const days = h / 24
+  if (days < 14) return days === 1 ? '1 day' : `${+days.toFixed(1)} days`
+  const weeks = days / 7
+  return weeks === 1 ? '1 wk' : `${+weeks.toFixed(1)} wks`
+}
+
+interface TimeDiffBadgeProps {
+  elapsedHours: number
+  targetHours: number
+  label: string
+}
+
+function TimeDiffBadge({ elapsedHours, targetHours, label }: TimeDiffBadgeProps) {
+  const diff = elapsedHours - targetHours
+  const over = diff > 0
+  const pct = Math.round(Math.abs(diff / targetHours) * 100)
+
+  if (pct < 5) {
+    return (
+      <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">
+        On track ({label})
+      </span>
+    )
+  }
+
+  return over ? (
+    <span className="text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
+      +{formatHours(diff)} over {label}
+    </span>
+  ) : (
+    <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded px-1.5 py-0.5">
+      {formatHours(Math.abs(diff))} left of {label}
+    </span>
+  )
 }
 
 // ─── DashboardProjectCard ─────────────────────────────────────────────────────
@@ -89,6 +130,42 @@ function DashboardProjectCard({ project }: { project: Project }) {
           </div>
         )}
       </div>
+
+      {/* Time tracking */}
+      {project.started_at && (() => {
+        const elapsedHours = (Date.now() - new Date(project.started_at).getTime()) / (1000 * 60 * 60)
+        const categoryMax = CATEGORY_MAX_HOURS[project.category]
+        const categoryMaxLabel = CATEGORY_MAX_LABEL[project.category]
+        return (
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2">Time</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Elapsed</span>
+                <span className="text-xs font-semibold text-gray-800">{formatHours(elapsedHours)}</span>
+              </div>
+              {project.estimated_hours != null && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-gray-500">Your estimate ({formatHours(project.estimated_hours)})</span>
+                  <TimeDiffBadge
+                    elapsedHours={elapsedHours}
+                    targetHours={project.estimated_hours}
+                    label={formatHours(project.estimated_hours)}
+                  />
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-gray-500">Category limit ({categoryMaxLabel})</span>
+                <TimeDiffBadge
+                  elapsedHours={elapsedHours}
+                  targetHours={categoryMax}
+                  label={categoryMaxLabel}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Metrics */}
       {!loading && totalCount > 0 && (

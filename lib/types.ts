@@ -19,6 +19,7 @@ export interface Project {
   expected_outcomes: string | null
   status: ProjectStatus
   started_at: string | null
+  estimated_hours: number | null
   url: string | null
   what_was_possible: string | null
   what_was_not_possible: string | null

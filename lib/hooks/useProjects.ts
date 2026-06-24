@@ -89,10 +89,11 @@ type CreateProjectInput = Omit<
   | 'status'
   | 'steps'
   | 'url'
+  | 'estimated_hours'
   | 'what_was_possible'
   | 'what_was_not_possible'
   | 'what_you_learned'
-> & { url?: string | null }
+> & { url?: string | null; estimated_hours?: number | null }
 
 export function useProjectMutations() {
   const supabase = useMemo(() => createClient(), [])

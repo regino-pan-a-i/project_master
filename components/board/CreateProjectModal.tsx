@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { useProjectMutations } from '@/lib/hooks/useProjects'
 import type { ProjectCategory } from '@/lib/types'
 
+type TimeUnit = 'hours' | 'days' | 'weeks'
+const UNIT_MULTIPLIER: Record<TimeUnit, number> = { hours: 1, days: 24, weeks: 168 }
+
 interface CreateProjectModalProps {
   isOpen: boolean
   onClose: () => void
@@ -29,6 +32,8 @@ export default function CreateProjectModal({
   const [inspiration, setInspiration] = useState('')
   const [expectedOutcomes, setExpectedOutcomes] = useState('')
   const [url, setUrl] = useState('')
+  const [estimateValue, setEstimateValue] = useState('')
+  const [estimateUnit, setEstimateUnit] = useState<TimeUnit>('days')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,6 +46,8 @@ export default function CreateProjectModal({
     setInspiration('')
     setExpectedOutcomes('')
     setUrl('')
+    setEstimateValue('')
+    setEstimateUnit('days')
     setError(null)
   }
 
@@ -58,6 +65,7 @@ export default function CreateProjectModal({
     setLoading(true)
     setError(null)
     try {
+      const parsedEstimate = parseFloat(estimateValue)
       await createProject({
         title: title.trim(),
         category,
@@ -65,6 +73,9 @@ export default function CreateProjectModal({
         inspiration: inspiration.trim() || null,
         expected_outcomes: expectedOutcomes.trim() || null,
         url: url.trim() || null,
+        estimated_hours: estimateValue.trim() && !isNaN(parsedEstimate)
+          ? parsedEstimate * UNIT_MULTIPLIER[estimateUnit]
+          : null,
       })
       resetForm()
       onCreated()
@@ -206,6 +217,33 @@ export default function CreateProjectModal({
                 rows={2}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
               />
+            </div>
+
+            {/* Estimated time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated time
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  value={estimateValue}
+                  onChange={(e) => setEstimateValue(e.target.value)}
+                  placeholder="e.g. 2"
+                  className="w-24 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <select
+                  value={estimateUnit}
+                  onChange={(e) => setEstimateUnit(e.target.value as TimeUnit)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                >
+                  <option value="hours">hours</option>
+                  <option value="days">days</option>
+                  <option value="weeks">weeks</option>
+                </select>
+              </div>
             </div>
 
             {/* Reference URL */}
