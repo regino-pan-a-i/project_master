@@ -44,6 +44,82 @@ interface EditableSectionProps {
   onSave: (value: string) => Promise<unknown>
 }
 
+interface EditableUrlSectionProps {
+  value: string | null
+  onSave: (value: string | null) => Promise<unknown>
+}
+
+function EditableUrlSection({ value, onSave }: EditableUrlSectionProps) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ?? '')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await onSave(draft.trim() || null)
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleCancel() {
+    setDraft(value ?? '')
+    setEditing(false)
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Reference URL</h3>
+        {!editing && (
+          <button onClick={() => setEditing(true)} className="text-xs text-blue-600 hover:text-blue-800">
+            {value ? 'Edit' : 'Add'}
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <div className="space-y-2">
+          <input
+            type="url"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="https://example.com/tutorial"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs font-medium px-3 py-1.5 rounded-lg"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={handleCancel}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : value ? (
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+        >
+          {value}
+        </a>
+      ) : (
+        <p className="text-sm text-gray-400 italic">Not set</p>
+      )}
+    </div>
+  )
+}
+
 function EditableSection({ label, value, onSave }: EditableSectionProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value ?? '')
@@ -239,6 +315,10 @@ export default function ProjectDetailPage() {
           label="Expected Outcomes"
           value={project.expected_outcomes}
           onSave={(val) => updateProject(id, { expected_outcomes: val })}
+        />
+        <EditableUrlSection
+          value={project.url}
+          onSave={(val) => updateProject(id, { url: val })}
         />
 
         {/* Steps */}
