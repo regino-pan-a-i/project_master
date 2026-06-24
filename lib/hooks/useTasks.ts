@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Task, TaskStatus } from '@/lib/types'
+import { invalidate, useInvalidationKey } from '@/lib/hooks/invalidation'
 
 // ─── Read hook ────────────────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ export function useTasks(projectId: string) {
   const [data, setData] = useState<Task[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const invalidationKey = useInvalidationKey('tasks')
 
   useEffect(() => {
     if (!projectId) return
@@ -17,6 +19,7 @@ export function useTasks(projectId: string) {
     let cancelled = false
 
     async function fetch() {
+      setLoading(true)
       try {
         const { data: tasks, error: tasksError } = await supabase
           .from('tasks')
@@ -35,7 +38,7 @@ export function useTasks(projectId: string) {
 
     fetch()
     return () => { cancelled = true }
-  }, [projectId])
+  }, [projectId, invalidationKey])
 
   return { data, loading, error }
 }
@@ -54,6 +57,7 @@ export function useTaskMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('tasks')
       return task as Task
     },
     [supabase]
@@ -99,13 +103,11 @@ export function useTaskMutations() {
         if (!project.started_at) {
           const { error: projectUpdateError } = await supabase
             .from('projects')
-            .update({
-              started_at: now,
-              updated_at: now,
-            })
+            .update({ started_at: now, updated_at: now })
             .eq('id', projectId)
 
           if (projectUpdateError) throw new Error(projectUpdateError.message)
+          invalidate('projects')
         }
       }
 
@@ -117,6 +119,7 @@ export function useTaskMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('tasks')
       return task as Task
     },
     [supabase]
@@ -126,6 +129,7 @@ export function useTaskMutations() {
     async (id: string): Promise<void> => {
       const { error } = await supabase.from('tasks').delete().eq('id', id)
       if (error) throw new Error(error.message)
+      invalidate('tasks')
     },
     [supabase]
   )

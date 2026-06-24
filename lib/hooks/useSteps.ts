@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Step } from '@/lib/types'
+import { invalidate, useInvalidationKey } from '@/lib/hooks/invalidation'
 
 // ─── Read hook ────────────────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ export function useSteps(projectId: string) {
   const [data, setData] = useState<Step[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const invalidationKey = useInvalidationKey('steps')
 
   useEffect(() => {
     if (!projectId) return
@@ -17,6 +19,7 @@ export function useSteps(projectId: string) {
     let cancelled = false
 
     async function fetch() {
+      setLoading(true)
       try {
         const { data: steps, error: stepsError } = await supabase
           .from('steps')
@@ -35,7 +38,7 @@ export function useSteps(projectId: string) {
 
     fetch()
     return () => { cancelled = true }
-  }, [projectId])
+  }, [projectId, invalidationKey])
 
   return { data, loading, error }
 }
@@ -47,7 +50,6 @@ export function useStepMutations() {
 
   const createStep = useCallback(
     async (projectId: string, text: string): Promise<Step> => {
-      // Determine next position
       const { data: existing, error: fetchError } = await supabase
         .from('steps')
         .select('position')
@@ -66,6 +68,7 @@ export function useStepMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('steps')
       return step as Step
     },
     [supabase]
@@ -81,6 +84,7 @@ export function useStepMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('steps')
       return step as Step
     },
     [supabase]
@@ -90,6 +94,7 @@ export function useStepMutations() {
     async (id: string): Promise<void> => {
       const { error } = await supabase.from('steps').delete().eq('id', id)
       if (error) throw new Error(error.message)
+      invalidate('steps')
     },
     [supabase]
   )
@@ -104,6 +109,7 @@ export function useStepMutations() {
 
       const firstError = results.find((r) => r.error)?.error
       if (firstError) throw new Error(firstError.message)
+      invalidate('steps')
     },
     [supabase]
   )

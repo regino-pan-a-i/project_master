@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Project } from '@/lib/types'
+import { invalidate, useInvalidationKey } from '@/lib/hooks/invalidation'
 
 // ─── Read hooks ──────────────────────────────────────────────────────────────
 
@@ -10,12 +11,14 @@ export function useProjects() {
   const [data, setData] = useState<Project[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const invalidationKey = useInvalidationKey('projects')
 
   useEffect(() => {
     const supabase = createClient()
     let cancelled = false
 
     async function fetch() {
+      setLoading(true)
       try {
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
@@ -33,7 +36,7 @@ export function useProjects() {
 
     fetch()
     return () => { cancelled = true }
-  }, [])
+  }, [invalidationKey])
 
   return { data, loading, error }
 }
@@ -42,6 +45,7 @@ export function useProject(id: string) {
   const [data, setData] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const invalidationKey = useInvalidationKey('projects')
 
   useEffect(() => {
     if (!id) return
@@ -49,6 +53,7 @@ export function useProject(id: string) {
     let cancelled = false
 
     async function fetch() {
+      setLoading(true)
       try {
         const { data: project, error: projectError } = await supabase
           .from('projects')
@@ -67,7 +72,7 @@ export function useProject(id: string) {
 
     fetch()
     return () => { cancelled = true }
-  }, [id])
+  }, [id, invalidationKey])
 
   return { data, loading, error }
 }
@@ -100,6 +105,7 @@ export function useProjectMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('projects')
       return project as Project
     },
     [supabase]
@@ -115,6 +121,7 @@ export function useProjectMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('projects')
       return project as Project
     },
     [supabase]
@@ -124,6 +131,7 @@ export function useProjectMutations() {
     async (id: string): Promise<void> => {
       const { error } = await supabase.from('projects').delete().eq('id', id)
       if (error) throw new Error(error.message)
+      invalidate('projects')
     },
     [supabase]
   )
@@ -150,6 +158,7 @@ export function useProjectMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('projects')
       return project as Project
     },
     [supabase]
@@ -169,6 +178,7 @@ export function useProjectMutations() {
         .single()
 
       if (error) throw new Error(error.message)
+      invalidate('projects')
       return project as Project
     },
     [supabase]
@@ -176,7 +186,6 @@ export function useProjectMutations() {
 
   const markProjectStarted = useCallback(
     async (id: string): Promise<void> => {
-      // Only set started_at if it isn't already set
       const { data: existing, error: fetchError } = await supabase
         .from('projects')
         .select('started_at')
@@ -195,6 +204,7 @@ export function useProjectMutations() {
         .eq('id', id)
 
       if (error) throw new Error(error.message)
+      invalidate('projects')
     },
     [supabase]
   )
