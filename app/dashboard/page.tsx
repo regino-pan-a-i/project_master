@@ -215,13 +215,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Nav */}
-        <div className="mb-8">
-          <Link href="/board" className="text-sm text-blue-600 hover:underline">
-            ← Back to Board
-          </Link>
-        </div>
-
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Momentum Dashboard</h1>

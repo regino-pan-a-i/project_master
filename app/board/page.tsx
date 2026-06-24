@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Link from 'next/link'
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd'
 import { useProjects, useProjectMutations } from '@/lib/hooks/useProjects'
 import BoardColumn from '@/components/board/BoardColumn'
@@ -93,30 +92,10 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-20">
-        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <h1 className="text-base font-bold text-gray-900 tracking-tight">
-              Project Master
-            </h1>
-            <nav className="flex items-center gap-4">
-              <Link
-                href="/board"
-                className="text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 pb-0.5"
-              >
-                Board
-              </Link>
-              <Link
-                href="/dashboard"
-                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                Dashboard
-              </Link>
-            </nav>
-          </div>
-
+    <div className="min-h-screen bg-white">
+      {/* Board body */}
+      <main className="max-w-screen-2xl mx-auto w-full px-4 sm:px-6 py-6">
+        <div className="flex items-center justify-end mb-4">
           <button
             onClick={() => setCreateOpen(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
@@ -136,10 +115,6 @@ export default function BoardPage() {
             New project
           </button>
         </div>
-      </header>
-
-      {/* Board body */}
-      <main className="flex-1 max-w-screen-2xl mx-auto w-full px-4 sm:px-6 py-6">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-sm text-gray-400 animate-pulse">
